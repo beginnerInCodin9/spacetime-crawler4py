@@ -48,7 +48,7 @@ def extract_next_links(url, resp):
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
-    global word_frequencies, longest_page
+    global word_frequencies, longest_page, unique_urls, subdomains
 
     # Check if the response is valid and contains content
     if resp.status != 200 or not resp.raw_response or not resp.raw_response.content:
@@ -84,7 +84,7 @@ def extract_next_links(url, resp):
     parsed_url = urlparse(clean_url) # Parse the clean URL to extract components
     if parsed_url.netloc.endswith("uci.edu"): # Check if the URL belongs to the uci.edu domain
         subdomain = parsed_url.netloc # Extract the subdomain from the URL
-        subdomains[subdomain] = subdomains.get(subdomain, 0) + 1 # Increment the count of unique pages for the subdomain, initializing to 0 if the subdomain hasn't been seen before
+        subdomains[subdomain] = subdomains.get(subdomain, 0) + 1 # Add the subdomain to the subdomains dictionary and increment the count of unique pages for that subdomain, initializing to 0 if the subdomain hasn't been seen before
     
     # Extract hyperlinks from the page
     extracted_links = []
