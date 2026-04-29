@@ -1,12 +1,15 @@
 import re
 from urllib.parse import urlparse, urldefrag
+from bs4 import BeautifulSoup
 import PartA
+
 
 # Global variables to store answers for report
 unique_urls = set()
 longest_page = {"url": "", "word_count": 0}
 word_frequencies = {}
 subdomains = {} # Format: {subdomain, number_of_unique_pages}
+
 
 # Stop words
 STOP_WORDS = {
@@ -29,9 +32,11 @@ STOP_WORDS = {
     "yourselves"
 }
 
+
 def scraper(url, resp):
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
+
 
 def extract_next_links(url, resp):
     # Implementation required.
@@ -43,7 +48,22 @@ def extract_next_links(url, resp):
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
+    global word_frequencies, longest_page
+
+    if resp.status != 200 or not resp.raw_response or not resp.raw_response.content:
+        return list() # Return an empty list if the response is not successful or content is missing
+    
+    # Defragment the URLs
+    clean_url, _ = urldefrag(resp.url)
+    if clean_url in unique_urls: # Check if the URL has already been processed
+        return list() # Return an empty list if the URL has already been processed
+    unique_urls.add(clean_url) # Add the clean URL to the set of unique URLs
+
+    soup = BeautifulSoup(resp.raw_response.content, "lxml") # Parse the HTML content using BeautifulSoup with the lxml parser
+    visible_text = soup.get_text() # Extract the text content from the HTML
+
     return list()
+
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 
