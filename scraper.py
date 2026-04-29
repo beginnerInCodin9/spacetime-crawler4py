@@ -1,14 +1,14 @@
 import re
-from urllib.parse import urlparse, urldefrag
+from urllib.parse import urlparse, urldefrag, urljoin
 from bs4 import BeautifulSoup
 import PartA
 
 
 # Global variables to store answers for report
-unique_urls = set()
-longest_page = {"url": "", "word_count": 0}
-word_frequencies = {}
-subdomains = {} # Format: {subdomain, number_of_unique_pages}
+unique_urls = set() # Q1: How many unique pages did you find? Uniqueness for the purposes of this assignment is ONLY established by the URL, but discarding the fragment part.
+longest_page = {"url": "", "word_count": 0} # Q2: What is the longest page in terms of the number of words? (HTML markup doesn’t count as words)
+word_frequencies = {} # Q3: What are the 50 most common words in the entire set of pages crawled under these domains ? (Ignore English stop words, which can be found, for example, hereLinks to an external site.) Submit the list of common words ordered by frequency.
+subdomains = {} # Q4: How many subdomains did you find in the uci.edu domain? Submit the list of subdomains ordered alphabetically and the number of unique pages detected in each subdomain. The content of this list should be lines containing subdomain, number, for example: vision.ics.uci.edu, 10 (not the actual number here)
 
 
 # Stop words
@@ -50,19 +50,50 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     global word_frequencies, longest_page
 
+    # Check if the response is valid and contains content
     if resp.status != 200 or not resp.raw_response or not resp.raw_response.content:
         return list() # Return an empty list if the response is not successful or content is missing
     
-    # Defragment the URLs
+    # Remove the fragment from the URL and check if it has already been processed
     clean_url, _ = urldefrag(resp.url)
     if clean_url in unique_urls: # Check if the URL has already been processed
         return list() # Return an empty list if the URL has already been processed
     unique_urls.add(clean_url) # Add the clean URL to the set of unique URLs
 
+    # Parse the HTML content and extract visible text
     soup = BeautifulSoup(resp.raw_response.content, "lxml") # Parse the HTML content using BeautifulSoup with the lxml parser
     visible_text = soup.get_text() # Extract the text content from the HTML
 
-    return list()
+    # Define a helper function to tokenize the visible text using regular expressions following the same logic as PartA's tokenize function
+    def tokenize_text(text):
+        return re.findall(r'[a-zA-Z0-9]+', text.lower()) # Use regular expressions to find all alphanumeric tokens and convert them to lowercase for case-insensitivity
+    
+    tokens = tokenize_text(visible_text) # Tokenize the visible text
+
+    # Update longest page
+    current_word_count = len(tokens) # Count the number of tokens on the page
+    if current_word_count > longest_page["word_count"]: # Check if the current page has more words than the longest page recorded so far
+        longest_page = {"url": clean_url, "word_count": current_word_count} # Update the longest page with the current page's URL and word count
+
+    # Update word frequencies while ignoring stop words
+    meaningful_tokens = [token for token in tokens if token not in STOP_WORDS] # Filter out stop words from the list of tokens
+    page_freqs = PartA.computeWordFrequencies(meaningful_tokens) # Compute the frequency of each meaningful token on the page using the computeWordFrequencies function from PartA
+    for word, count in page_freqs.items(): # Update the global word frequencies dictionary with the counts from the current page, ignoring stop words
+        word_frequencies[word] = word_frequencies.get(word, 0) + count # Increment the count for each word in the global word frequencies dictionary, initializing to 0 if the word hasn't been seen before
+
+    parsed_url = urlparse(clean_url) # Parse the clean URL to extract components
+    if parsed_url.netloc.endswith("uci.edu"): # Check if the URL belongs to the uci.edu domain
+        subdomain = parsed_url.netloc # Extract the subdomain from the URL
+        subdomains[subdomain] = subdomains.get(subdomain, 0) + 1 # Increment the count of unique pages for the subdomain, initializing to 0 if the subdomain hasn't been seen before
+    
+    # Extract hyperlinks from the page
+    extracted_links = []
+    for link in soup.find_all('a', href=True): # Find all anchor tags with an href attribute
+        full_url = urljoin(clean_url, link['href']) # Construct the full URL by joining the clean URL with the href value
+        defragmented_url, _ = urldefrag(full_url) # Remove the fragment from the URL
+        extracted_links.append(defragmented_url) # Add the defragmented URL to the list of extracted links
+
+    return extracted_links
 
 
 def is_valid(url):
@@ -73,6 +104,16 @@ def is_valid(url):
         parsed = urlparse(url)
         if parsed.scheme not in set(["http", "https"]):
             return False
+
+        # Only crawl URLs that belong to the specified domains
+        allowed_domains = ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
+        if not any(parsed.netloc.endswith(domain) for domain in allowed_domains):
+            return False
+        
+        # Exclude URLs that contain "calender" (case-insensitive) or are excessively long (greater than 200 characters)
+        if "calender" in parsed.path.lower() or len(url) > 200:
+            return False
+
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
