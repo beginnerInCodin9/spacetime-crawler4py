@@ -120,7 +120,11 @@ def is_valid(url):
             return False
         
         # Exclude URLs that contain query parameters that are likely to lead to traps, such as "do=media", "do=revisions", "do=diff", "tab_details=", "tab_files=", "share=", "replytocom=", or "printable=" (case-insensitive)
-        trap_patterns = [r"do=media", r"do=revisions", r"do=diff", r"tab_details=", r"tab_files=", r"share=", r"replytocom=", r"printable="]
+        trap_patterns = [
+            r"do=media", r"do=revisions", r"do=diff", r"do=edit", r"do=export", 
+            r"do=index", r"do=login", r"do=backlink", r"idx=", r"tab_details=", 
+            r"tab_files=", r"share=", r"replytocom=", r"printable="
+        ]
         if any(re.search(pattern, parsed.query.lower()) for pattern in trap_patterns):
             return False
         
