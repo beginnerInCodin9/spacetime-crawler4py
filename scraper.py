@@ -92,11 +92,13 @@ def extract_next_links(url, resp):
     print(f"Subdomains found: {len(subdomains)}")
     
     # Extract hyperlinks from the page
-    extracted_links = []
+    extracted_links = set() # Use a set to store extracted links to avoid duplicates
     for link in soup.find_all('a', href=True): # Find all anchor tags with an href attribute
         full_url = urljoin(clean_url, link['href']) # Construct the full URL by joining the clean URL with the href value
         defragmented_url, _ = urldefrag(full_url) # Remove the fragment from the URL
-        extracted_links.append(defragmented_url) # Add the defragmented URL to the list of extracted links
+        # Check if the defragmented URL is valid and has not been processed before, then add it to the set of extracted links
+        if is_valid(defragmented_url) and defragmented_url not in unique_urls:
+            extracted_links.add(defragmented_url)
 
     return extracted_links
 
@@ -125,7 +127,7 @@ def is_valid(url):
             r"do=index", r"do=login", r"do=backlink", r"idx=", r"tab_details=", 
             r"tab_files=", r"share=", r"replytocom=", r"printable="
         ]
-        if any(re.search(pattern, parsed.query.lower()) for pattern in trap_patterns):
+        if any(re.search(pattern, url.lower()) for pattern in trap_patterns):
             return False
         
         # Exclude URLs that have repeated path segments, which can indicate a trap (e.g., "/a/b/a/b/")
@@ -134,6 +136,10 @@ def is_valid(url):
         
         # Exclude URLs that contain certain path segments that are commonly associated with traps, such as "/action/", "/login/", or "/embed/" (case-insensitive)
         if any(x in parsed.path.lower() for x in ["/action/", "/login/", "/embed/"]):
+            return False
+        
+        # Exclude URLs that have an excessive number of path segments (e.g., more than 10), which can indicate a trap: Going too deep into the directory
+        if parsed.path.count('/') > 10:
             return False
 
         return not re.match(
