@@ -85,6 +85,11 @@ def extract_next_links(url, resp):
     if parsed_url.netloc.endswith("uci.edu"): # Check if the URL belongs to the uci.edu domain
         subdomain = parsed_url.netloc # Extract the subdomain from the URL
         subdomains[subdomain] = subdomains.get(subdomain, 0) + 1 # Add the subdomain to the subdomains dictionary and increment the count of unique pages for that subdomain, initializing to 0 if the subdomain hasn't been seen before
+
+    # Temporary debug prints; TO BE DELETED LATER
+    print(f"Total Unique: {len(unique_urls)}")
+    print(f"Current Longest: {longest_page['word_count']} words at {longest_page['url']}")
+    print(f"Subdomains found: {len(subdomains)}")
     
     # Extract hyperlinks from the page
     extracted_links = []
@@ -110,8 +115,21 @@ def is_valid(url):
         if not any(parsed.netloc.endswith(domain) for domain in allowed_domains):
             return False
         
-        # Exclude URLs that contain "calender" (case-insensitive) or are excessively long (greater than 200 characters)
-        if "calender" in parsed.path.lower() or len(url) > 200:
+        # Exclude URLs that contain "calender" (case-insensitive) or "calendar" (case-insensitive) or are excessively long (greater than 200 characters)
+        if "calender" in parsed.path.lower() or "calendar" in parsed.path.lower() or len(url) > 200:
+            return False
+        
+        # Exclude URLs that contain query parameters that are likely to lead to traps, such as "do=media", "do=revisions", "do=diff", "tab_details=", "tab_files=", "share=", "replytocom=", or "printable=" (case-insensitive)
+        trap_patterns = [r"do=media", r"do=revisions", r"do=diff", r"tab_details=", r"tab_files=", r"share=", r"replytocom=", r"printable="]
+        if any(re.search(pattern, parsed.query.lower()) for pattern in trap_patterns):
+            return False
+        
+        # Exclude URLs that have repeated path segments, which can indicate a trap (e.g., "/a/b/a/b/")
+        if re.search(r'(/.+?)\1{2,}', parsed.path):
+            return False
+        
+        # Exclude URLs that contain certain path segments that are commonly associated with traps, such as "/action/", "/login/", or "/embed/" (case-insensitive)
+        if any(x in parsed.path.lower() for x in ["/action/", "/login/", "/embed/"]):
             return False
 
         return not re.match(
