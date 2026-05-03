@@ -97,6 +97,9 @@ def extract_next_links(url, resp):
     print(f"Total Unique: {len(unique_urls)}")
     print(f"Current Longest: {longest_page['word_count']} words at {longest_page['url']}")
     print(f"Subdomains found: {len(subdomains)}")
+
+    if len(unique_urls) % 100 == 0:
+        write_report() # Write the report every 100 unique URLs to track progress and ensure that data is saved periodically in case of interruptions
     
     # Extract hyperlinks from the page
     extracted_links = set() # Use a set to store extracted links to avoid duplicates
