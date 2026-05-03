@@ -161,3 +161,25 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
+
+def write_report():
+    # Write the report to a file named "report.txt" in the current directory
+    with open("report.txt", "w") as report_file:
+        # Q1: Total unique pages found
+        report_file.write(f"Q1: Total unique pages found: {len(unique_urls)}\n\n")
+        
+        # Q2: Longest page in terms of number of words
+        report_file.write(f"Q2: Longest page: {longest_page['url']} ({longest_page['word_count']} words)\n\n")
+        
+        # Q3: 50 most common words and their frequencies
+        sorted_word_freqs = sorted(word_frequencies.items(), key=lambda item: item[1], reverse=True)[:50] # Get the top 50 most common words sorted by frequency
+        report_file.write("Q3: 50 most common words and their frequencies:\n")
+        for word, freq in sorted_word_freqs:
+            report_file.write(f"{word}: {freq}\n")
+        report_file.write("\n")
+        
+        # Q4: Subdomains found in uci.edu domain and the number of unique pages detected in each subdomain
+        sorted_subdomains = sorted(subdomains.items()) # Sort subdomains alphabetically
+        report_file.write("Q4: Subdomains found in uci.edu domain and the number of unique pages detected in each subdomain:\n")
+        for subdomain, count in sorted_subdomains:
+            report_file.write(f"{subdomain}: {count}\n")
