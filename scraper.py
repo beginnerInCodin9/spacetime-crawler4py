@@ -123,9 +123,7 @@ def is_valid(url):
         
         # Exclude URLs that contain query parameters that are likely to lead to traps, such as "do=media", "do=revisions", "do=diff", "tab_details=", "tab_files=", "share=", "replytocom=", or "printable=" (case-insensitive)
         trap_patterns = [
-            r"do=media", r"do=revisions", r"do=diff", r"do=edit", r"do=export", 
-            r"do=index", r"do=login", r"do=backlink", r"idx=", r"tab_details=", 
-            r"tab_files=", r"share=", r"replytocom=", r"printable="
+            r"do=", r"idx=", r"tab_details=", r"tab_files=", r"share=", r"replytocom=", r"printable="
         ]
         if any(re.search(pattern, url.lower()) for pattern in trap_patterns):
             return False
@@ -150,7 +148,7 @@ def is_valid(url):
             + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
             + r"|epub|dll|cnf|tgz|sha1"
             + r"|thmx|mso|arff|rtf|jar|csv"
-            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())
+            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", url.lower())
 
     except TypeError:
         print ("TypeError for ", parsed)
