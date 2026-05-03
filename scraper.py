@@ -54,6 +54,9 @@ def extract_next_links(url, resp):
     if resp.status != 200 or not resp.raw_response or not resp.raw_response.content:
         return list() # Return an empty list if the response is not successful or content is missing
     
+    if len(resp.raw_response.content) > 1000000:
+        return list() # Return an empty list if the content is excessively large (greater than 1MB) to avoid processing very large pages that may be traps or not relevant
+        
     # Remove the fragment from the URL and check if it has already been processed
     clean_url, _ = urldefrag(resp.url)
     if clean_url in unique_urls: # Check if the URL has already been processed
@@ -69,6 +72,8 @@ def extract_next_links(url, resp):
         return re.findall(r'[a-zA-Z0-9]+', text.lower()) # Use regular expressions to find all alphanumeric tokens and convert them to lowercase for case-insensitivity
     
     tokens = tokenize_text(visible_text) # Tokenize the visible text
+    if len(tokens) < 50:
+        return list() # Return an empty list if the page has fewer than 50 tokens, as it may not be substantial enough to analyze or may be a trap
 
     # Update longest page
     current_word_count = len(tokens) # Count the number of tokens on the page
@@ -77,6 +82,8 @@ def extract_next_links(url, resp):
 
     # Update word frequencies while ignoring stop words
     meaningful_tokens = [token for token in tokens if token not in STOP_WORDS] # Filter out stop words from the list of tokens
+    if len(meaningful_tokens) < 50:
+        return list() # Return an empty list if the page has fewer than 50 meaningful tokens after removing stop words, as it may not be substantial enough to analyze or may be a trap
     page_freqs = PartA.computeWordFrequencies(meaningful_tokens) # Compute the frequency of each meaningful token on the page using the computeWordFrequencies function from PartA
     for word, count in page_freqs.items(): # Update the global word frequencies dictionary with the counts from the current page, ignoring stop words
         word_frequencies[word] = word_frequencies.get(word, 0) + count # Increment the count for each word in the global word frequencies dictionary, initializing to 0 if the word hasn't been seen before
@@ -120,12 +127,13 @@ def is_valid(url):
         # Exclude URLs that contain "calender" (case-insensitive) or "calendar" (case-insensitive) or are excessively long (greater than 200 characters)
         if "calender" in parsed.path.lower() or "calendar" in parsed.path.lower() or len(url) > 200:
             return False
+
+        # Exclude URLs that contain certain query parameters that are commonly associated with traps, such as "do=", "idx=", "tab_details=", "tab_files=", "share=", "replytocom=", "printable=", "export", or "pdf" (case-insensitive)
+        if any(pattern in url.lower() for pattern in ["do=", "idx=", "tab_details=", "tab_files=", "share=", "replytocom=", "printable=", "export", "pdf"]):
+            return False
         
-        # Exclude URLs that contain query parameters that are likely to lead to traps, such as "do=media", "do=revisions", "do=diff", "tab_details=", "tab_files=", "share=", "replytocom=", or "printable=" (case-insensitive)
-        trap_patterns = [
-            r"do=", r"idx=", r"tab_details=", r"tab_files=", r"share=", r"replytocom=", r"printable="
-        ]
-        if any(re.search(pattern, url.lower()) for pattern in trap_patterns):
+        # Exclude URLs that contain certain patterns that are commonly associated with common redundant or low-information pages, such as "/page/", "version=", "rev=", "diff=", "action=", "/login/", or "/embed/" (case-insensitive)
+        if any(pattern in url.lower() for pattern in ["/page/", "version=", "rev=", "diff=", "action=", "/login/", "/embed/"]):
             return False
         
         # Exclude URLs that have repeated path segments, which can indicate a trap (e.g., "/a/b/a/b/")
