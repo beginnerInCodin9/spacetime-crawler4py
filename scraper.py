@@ -104,7 +104,19 @@ def extract_next_links(url, resp):
     # Extract hyperlinks from the page
     extracted_links = set() # Use a set to store extracted links to avoid duplicates
     for link in soup.find_all('a', href=True): # Find all anchor tags with an href attribute
-        full_url = urljoin(clean_url, link['href']) # Construct the full URL by joining the clean URL with the href value
+        href = link['href'] # Get the href value from the anchor tag
+
+        # Skip links that are not valid for crawling, such as Javascript links, mailto links, fragment-only links, or links that contain "YOUR_IP"
+        if href.startswith("javascript:") or href.startswith("mailto:") or href.startswith("#"):
+            continue
+        if "YOUR_IP" in href or href.startswith("[") or href.startswith("http://[") or href.startswith("https://["):
+            continue
+
+        try: 
+            full_url = urljoin(clean_url, link['href']) # Construct the full URL by joining the clean URL with the href value
+        except ValueError:
+            continue # Skip malformed URLs that cannot be joined properly
+
         defragmented_url, _ = urldefrag(full_url) # Remove the fragment from the URL
         # Check if the defragmented URL is valid and has not been processed before, then add it to the set of extracted links
         if is_valid(defragmented_url) and defragmented_url not in unique_urls:
