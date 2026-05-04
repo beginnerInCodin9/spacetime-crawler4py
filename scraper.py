@@ -82,6 +82,7 @@ def extract_next_links(url, resp):
     meaningful_tokens = [token for token in tokens if token not in STOP_WORDS] # Filter out stop words from the list of tokens
     if len(meaningful_tokens) < 50:
         return list() # Return an empty list if the page has fewer than 50 meaningful tokens after removing stop words, as it may not be substantial enough to analyze or may be a trap
+    
     page_freqs = PartA.computeWordFrequencies(meaningful_tokens) # Compute the frequency of each meaningful token on the page using the computeWordFrequencies function from PartA
     for word, count in page_freqs.items(): # Update the global word frequencies dictionary with the counts from the current page, ignoring stop words
         word_frequencies[word] = word_frequencies.get(word, 0) + count # Increment the count for each word in the global word frequencies dictionary, initializing to 0 if the word hasn't been seen before
