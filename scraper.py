@@ -142,6 +142,14 @@ def is_valid(url):
         # Exclude URLs that contain "calender" (case-insensitive) or "calendar" (case-insensitive) or are excessively long (greater than 200 characters)
         if "calender" in parsed.path.lower() or "calendar" in parsed.path.lower() or len(url) > 200:
             return False
+        
+        # Exclude URLs that contain certain keywords that are commonly associated with calendar or scheduling pages, such as "ical=1", "outlook-ical", "tribe-bar-date", or "eventdisplay" (case-insensitive)
+        if any(pattern in url.lower() for pattern in ["ical=1", "outlook-ical", "tribe-bar-date", "eventdisplay"]):
+            return False
+        
+        # Exclude URLs that contain "/events/category/" followed by either "/list/" or "/day/", which are commonly associated with event listing pages that may not be relevant for crawling (case-insensitive)
+        if "/events/category/" in url.lower() and ("/list/" in url.lower() or "/day/" in url.lower()):
+            return False
 
         # Exclude URLs that contain certain query parameters that are commonly associated with traps, such as "do=", "idx=", "tab_details=", "tab_files=", "share=", "replytocom=", "printable=", "export", or "pdf" (case-insensitive)
         if any(pattern in url.lower() for pattern in ["do=", "idx=", "tab_details=", "tab_files=", "share=", "replytocom=", "printable=", "export", "pdf"]):
