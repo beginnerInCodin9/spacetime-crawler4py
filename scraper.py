@@ -145,9 +145,14 @@ def is_valid(url):
         if any(pattern in url.lower() for pattern in ["ical=1", "outlook-ical", "tribe-bar-date", "eventdisplay"]):
             return False
         
-        # Exclude URLs that contain "/events/category/" followed by either "/list/" or "/day/", which are commonly associated with event listing pages that may not be relevant for crawling (case-insensitive)
-        if "/events/category/" in url.lower() and ("/list/" in url.lower() or "/day/" in url.lower()):
-            return False
+        # Exclude URLs that are related to events and have specific sub-paths that are commonly associated with calendar or scheduling pages, such as "/category/", "/list/", or "/day/" (case-insensitive)
+        if "/event/" in url.lower() or "/events/" in url.lower():
+            if any(pattern in url.lower() for pattern in ["/category/", "/list/", "/day/"]):
+                return False
+            if re.search(r'/\d{4}-\d{2}-\d{2}/', url.lower()): # Exclude URLs that contain date patterns in the path, which are commonly associated with event pages (e.g., "/2023-12-31/")
+                return False
+            if re.search(r'/\d{4}-\d{2}/', url.lower()): # Exclude URLs that contain year-month patterns in the path, which can also be associated with event pages (e.g., "/2023-12/")
+                return False
 
         # Exclude URLs that contain certain query parameters that are commonly associated with traps, such as "do=", "idx=", "tab_details=", "tab_files=", "share=", "replytocom=", "printable=", "export", or "pdf" (case-insensitive)
         if any(pattern in url.lower() for pattern in ["do=", "idx=", "tab_details=", "tab_files=", "share=", "replytocom=", "printable=", "export", "pdf"]):
@@ -170,7 +175,7 @@ def is_valid(url):
             return False
 
         return not re.match(
-            r".*\.(css|js|bmp|gif|jpe?g|ico"
+            r".*\.(css|js|apk|zip|exe|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
             + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
             + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
