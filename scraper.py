@@ -73,19 +73,18 @@ def extract_next_links(url, resp):
     
     tokens = tokenize_text(visible_text) # Tokenize the visible text
 
-    # Update longest page
-    current_word_count = len(tokens) # Count the number of tokens on the page
+    meaningful_tokens = [token for token in tokens if token not in STOP_WORDS] # Filter out stop words from the list of tokens
+
+    # Update longest page while ignoring stop words
+    current_word_count = len(meaningful_tokens) # Count the number of tokens on the page
     if current_word_count > longest_page["word_count"]: # Check if the current page has more words than the longest page recorded so far
         longest_page = {"url": clean_url, "word_count": current_word_count} # Update the longest page with the current page's URL and word count
 
     # Update word frequencies while ignoring stop words
-    meaningful_tokens = [token for token in tokens if token not in STOP_WORDS] # Filter out stop words from the list of tokens
-    if len(meaningful_tokens) < 50:
-        return list() # Return an empty list if the page has fewer than 50 meaningful tokens after removing stop words, as it may not be substantial enough to analyze or may be a trap
-    
-    page_freqs = PartA.computeWordFrequencies(meaningful_tokens) # Compute the frequency of each meaningful token on the page using the computeWordFrequencies function from PartA
-    for word, count in page_freqs.items(): # Update the global word frequencies dictionary with the counts from the current page, ignoring stop words
-        word_frequencies[word] = word_frequencies.get(word, 0) + count # Increment the count for each word in the global word frequencies dictionary, initializing to 0 if the word hasn't been seen before
+    if len(meaningful_tokens) >= 50: # Only consider pages with at least 50 meaningful tokens to avoid skewing the word frequencies with very short pages that may not be informative
+        page_freqs = PartA.computeWordFrequencies(meaningful_tokens) # Compute the frequency of each meaningful token on the page using the computeWordFrequencies function from PartA
+        for word, count in page_freqs.items(): # Update the global word frequencies dictionary with the counts from the current page, ignoring stop words
+            word_frequencies[word] = word_frequencies.get(word, 0) + count # Increment the count for each word in the global word frequencies dictionary, initializing to 0 if the word hasn't been seen before
 
     parsed_url = urlparse(clean_url) # Parse the clean URL to extract components
     if parsed_url.netloc.endswith("uci.edu"): # Check if the URL belongs to the uci.edu domain
@@ -150,11 +149,9 @@ def is_valid(url):
         if "/event/" in url.lower() or "/events/" in url.lower():
             if any(pattern in url.lower() for pattern in ["/category/", "/list/", "/day/", "week-"]):
                 return False
-            if re.search(r'/\d{4}-\d{2}-\d{2}/', url.lower()): # Exclude URLs that contain date patterns in the path, which are commonly associated with event pages (e.g., "/2023-12-31/")
+            if re.search(r'/\d{4}-\d{2}(-\d{2})?/', url.lower()): # Exclude URLs that contain date patterns in the path, which are commonly associated with event pages (e.g., "/2023-12-31/" or "/2023-12/")
                 return False
-            if re.search(r'/\d{4}-\d{2}/', url.lower()): # Exclude URLs that contain year-month patterns in the path, which can also be associated with event pages (e.g., "/2023-12/")
-                return False
-
+            
         # Exclude URLs that contain certain query parameters that are commonly associated with traps, such as "do=", "idx=", "tab_details=", "tab_files=", "share=", "replytocom=", "printable=", "export", or "pdf" (case-insensitive)
         if any(pattern in url.lower() for pattern in ["do=", "idx=", "tab_details=", "tab_files=", "share=", "replytocom=", "printable=", "export", "pdf"]):
             return False
