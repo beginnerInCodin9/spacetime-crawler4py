@@ -72,8 +72,6 @@ def extract_next_links(url, resp):
         return re.findall(r'[a-zA-Z0-9]+', text.lower()) # Use regular expressions to find all alphanumeric tokens and convert them to lowercase for case-insensitivity
     
     tokens = tokenize_text(visible_text) # Tokenize the visible text
-    if len(tokens) < 50:
-        return list() # Return an empty list if the page has fewer than 50 tokens, as it may not be substantial enough to analyze or may be a trap
 
     # Update longest page
     current_word_count = len(tokens) # Count the number of tokens on the page
