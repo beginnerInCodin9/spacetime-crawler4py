@@ -146,9 +146,9 @@ def is_valid(url):
         if any(pattern in url.lower() for pattern in ["ical=1", "outlook-ical", "tribe-bar-date", "eventdisplay"]):
             return False
         
-        # Exclude URLs that are related to events and have specific sub-paths that are commonly associated with calendar or scheduling pages, such as "/category/", "/list/", or "/day/" (case-insensitive)
+        # Exclude URLs that are related to events and have specific sub-paths that are commonly associated with calendar or scheduling pages, such as "/category/", "/list/", "/day/" or "week-" (case-insensitive)
         if "/event/" in url.lower() or "/events/" in url.lower():
-            if any(pattern in url.lower() for pattern in ["/category/", "/list/", "/day/"]):
+            if any(pattern in url.lower() for pattern in ["/category/", "/list/", "/day/", "week-"]):
                 return False
             if re.search(r'/\d{4}-\d{2}-\d{2}/', url.lower()): # Exclude URLs that contain date patterns in the path, which are commonly associated with event pages (e.g., "/2023-12-31/")
                 return False
