@@ -109,7 +109,7 @@ def extract_next_links(url, resp):
         # Skip links that are not valid for crawling, such as Javascript links, mailto links, fragment-only links, or links that contain "YOUR_IP"
         if href.startswith("javascript:") or href.startswith("mailto:") or href.startswith("#"):
             continue
-        if "YOUR_IP" in href or href.startswith("[") or href.startswith("http://[") or href.startswith("https://["):
+        if "YOUR_IP" in href.upper() or href.startswith("[") or href.startswith("http://[") or href.startswith("https://["):
             continue
 
         try: 
