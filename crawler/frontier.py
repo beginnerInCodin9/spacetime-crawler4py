@@ -8,6 +8,8 @@ from utils import get_logger, get_urlhash, normalize
 from scraper import is_valid
 
 class Frontier(object):
+    # The frontier is responsible for keeping track of urls to be downloaded, and which urls have already been downloaded. It also handles saving and loading
+    # this state to a file, so that the crawler can be stopped and restarted without losing progress.
     def __init__(self, config, restart):
         self.logger = get_logger("FRONTIER")
         self.config = config
@@ -37,8 +39,10 @@ class Frontier(object):
 
     def _parse_save_file(self):
         ''' This function can be overridden for alternate saving techniques. '''
-        total_count = len(self.save)
-        tbd_count = 0
+        total_count = len(self.save) # Total urls discovered, including completed and to-be-downloaded.
+        tbd_count = 0 # Count of total urls to be downloaded, excluding completed.
+        # Iterate through save file, and add urls that are not marked as completed to the to_be_downloaded list.
+        # Also count total urls discovered and to-be-downloaded urls for logging.
         for url, completed in self.save.values():
             if not completed and is_valid(url):
                 self.to_be_downloaded.append(url)
@@ -48,12 +52,16 @@ class Frontier(object):
             f"total urls discovered.")
 
     def get_tbd_url(self):
+        # Get a url to be downloaded. Returns None if there are no urls to be downloaded.
         try:
             return self.to_be_downloaded.pop()
         except IndexError:
             return None
 
     def add_url(self, url):
+        # Add a url to the frontier, if it has not already been seen.
+        # The url is normalized before being added, so that different
+        # forms of the same url are not treated as different urls.
         url = normalize(url)
         urlhash = get_urlhash(url)
         if urlhash not in self.save:
@@ -62,6 +70,8 @@ class Frontier(object):
             self.to_be_downloaded.append(url)
     
     def mark_url_complete(self, url):
+        # Mark a url as completed, so that it will not be downloaded again.
+        # This should only be called after a url has been successfully downloaded and processed.
         urlhash = get_urlhash(url)
         if urlhash not in self.save:
             # This should not happen.
