@@ -101,10 +101,10 @@ def extract_next_links(url, resp):
     for link in soup.find_all('a', href=True): # Find all anchor tags with an href attribute
         href = link['href'] # Get the href value from the anchor tag
 
-        # Skip links that are not valid for crawling, such as Javascript links, mailto links, fragment-only links, or links that contain "YOUR_IP"
+        # Skip links that are not valid for crawling, such as Javascript links, mailto links, or fragment-only links
         if href.startswith("javascript:") or href.startswith("mailto:") or href.startswith("#"):
             continue
-        
+
         # Skip links that contain "YOUR_IP" (case-insensitive) or are IPv6 addresses (start with "[" or "http://[" or "https://[") to avoid crawling potentially invalid or trap URLs
         if "YOUR_IP" in href.upper() or href.startswith("[") or href.startswith("http://[") or href.startswith("https://["):
             continue
