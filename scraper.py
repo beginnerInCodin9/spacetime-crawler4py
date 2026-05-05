@@ -34,8 +34,8 @@ STOP_WORDS = {
 
 
 def scraper(url, resp):
-    links = extract_next_links(url, resp)
-    return [link for link in links if is_valid(link)]
+    links = extract_next_links(url, resp) # Extract the hyperlinks from the page and update global variables for the report
+    return links # Return the list of hyperlinks extracted from the page to be added to the crawl frontier
 
 
 def extract_next_links(url, resp):
@@ -153,11 +153,11 @@ def is_valid(url):
                 return False
             
         # Exclude URLs that contain certain query parameters that are commonly associated with traps, such as "do=", "idx=", "tab_details=", "tab_files=", "share=", "replytocom=", "printable=", "export", or "pdf" (case-insensitive)
-        if any(pattern in url.lower() for pattern in ["do=", "idx=", "tab_details=", "tab_files=", "share=", "replytocom=", "printable=", "export", "pdf"]):
+        if any(trap_patterns in url.lower() for trap_patterns in ["do=", "idx=", "tab_details=", "tab_files=", "share=", "replytocom=", "printable=", "export", "pdf"]):
             return False
         
         # Exclude URLs that contain certain patterns that are commonly associated with common redundant or low-information pages, such as "/page/", "version=", "rev=", "diff=", "action=", "/login/", or "/embed/" (case-insensitive)
-        if any(pattern in url.lower() for pattern in ["/page/", "version=", "rev=", "diff=", "action=", "/login/", "/embed/"]):
+        if any(useless_patterns in url.lower() for useless_patterns in ["/page/", "version=", "rev=", "diff=", "action=", "/login/", "/embed/"]):
             return False
         
         # Exclude URLs that have repeated path segments, which can indicate a trap (e.g., "/a/b/a/b/")
@@ -165,7 +165,7 @@ def is_valid(url):
             return False
         
         # Exclude URLs that contain certain path segments that are commonly associated with traps, such as "/action/", "/login/", or "/embed/" (case-insensitive)
-        if any(x in parsed.path.lower() for x in ["/action/", "/login/", "/embed/"]):
+        if any(path_segment in parsed.path.lower() for path_segment in ["/action/", "/login/", "/embed/"]):
             return False
         
         # Exclude URLs that have an excessive number of path segments (e.g., more than 10), which can indicate a trap: Going too deep into the directory
