@@ -8,6 +8,10 @@ import time
 
 
 class Worker(Thread):
+    # The worker is responsible for downloading a url, and processing the response with the scraper.
+    # It also adds any new urls discovered by the scraper to the frontier, and marks the url as
+    # completed in the frontier. Each worker runs in its own thread, and continuously gets urls to
+    # be downloaded from the frontier until there are no more urls to be downloaded.
     def __init__(self, worker_id, config, frontier):
         self.logger = get_logger(f"Worker-{worker_id}", "Worker")
         self.config = config
@@ -19,10 +23,13 @@ class Worker(Thread):
         
     def run(self):
         while True:
+            # Get a url to be downloaded from the frontier. If there are no urls to be downloaded, stop the worker.
             tbd_url = self.frontier.get_tbd_url()
             if not tbd_url:
                 self.logger.info("Frontier is empty. Stopping Crawler.")
                 break
+            # Download the url, and process the response with the scraper. Add any new urls discovered by the
+            # scraper to the frontier, and mark the url as completed in the frontier.
             resp = download(tbd_url, self.config, self.logger)
             self.logger.info(
                 f"Downloaded {tbd_url}, status <{resp.status}>, "
