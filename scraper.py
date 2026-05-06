@@ -169,6 +169,12 @@ def is_valid(url):
         if re.search(r'(/.+?)\1{2,}', parsed.path):
             return False
         
+        # Exclude URLs that have the same path segment repeated at least 4 times, which can indicate a trap (e.g., "/a/a/a/a/")
+        path_segments = [p for p in parsed.path.split('/') if p]
+        if len(path_segments) >= 4:
+            if path_segments[:2] == path_segments[2:4]:
+                return False
+        
         # Exclude URLs that have pagination parameters with large numeric values, which can indicate a trap (e.g., "?page=9999" or "&offset=10000")
         if re.search(r'[\?&](page|p|offset|start)=\d{3,}', url.lower()):
             return False
