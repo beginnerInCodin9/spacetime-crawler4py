@@ -152,13 +152,14 @@ def is_valid(url):
             "ical=1", "outlook-ical", "tribe-bar-date", "eventdisplay", "do=", "idx=", "tab_details=", "tab_files=", 
             "share=", "replytocom=", "printable=", "export", "pdf", "sessionid=", "sid=", "phpsessid=", "gclid=", 
             "utm_", "fbclid=", "ref=", "trackback=", "trackback/",  "wp-", "sort=", "filter=", "order=", "view=",
-            "random=", "seed="
+            "random=", "seed=", "?q=", "&q=", "?search=", "&search=", "?s=", "&s="
             ]
         
         useless_patterns = [
             "/page/", "version=", "rev=", "diff=", "action=", "/action/", "/login/", "/embed/", "/tag/", "/tags/",
-            "/author/", "/authors/", "/category/", "/categories/", "/archive/", "/archives/", "?people=", "?person=",
-            "?faculty=", "?staff=", "&people=", "&person=", "&faculty=", "&staff="
+            "/author/", "/authors/", "/category/", "/categories/", "/archive/", "/archives/", "/feed/", "/feeds/",
+            "/rss/", "/atom/", "?people=", "?person=", "?faculty=", "?staff=", "&people=", "&person=", "&faculty=",
+            "&staff="
             ]
         
         # Exclude URLs that contain certain patterns that are commonly associated with common redundant or low-information pages, such as "/page/", "version=", "rev=", "diff=", "action=", "/login/", or "/embed/" (case-insensitive)
