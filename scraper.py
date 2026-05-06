@@ -164,7 +164,9 @@ def is_valid(url):
             "/author/", "/authors/", "/category/", "/categories/", "/archive/", "/archives/", "/feed/", "/feeds/",
             "/rss/", "/atom/", "?people=", "?person=", "?faculty=", "?staff=", "&people=", "&person=", "&faculty=",
             "&staff=", "~", "/datasets/", "/dataset/", "/data/", "/datasets/", "/file/", "/files/", "/download/",
-            "/downloads/"
+            "/downloads/", "skin=", "style=", "theme=", "color=", "display=", "font=", "fontsize=", "width=", 
+            "height=", "size=", "lang=", "language=", "locale=", "currency=", "unit=", "format=", "type=", "direction=",
+            "orderby="
             ]
         
         # Exclude URLs that contain certain patterns that are commonly associated with common redundant or low-information pages, such as "/page/", "version=", "rev=", "diff=", "action=", "/login/", or "/embed/" (case-insensitive)
