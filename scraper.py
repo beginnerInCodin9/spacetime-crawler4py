@@ -163,7 +163,7 @@ def is_valid(url):
             "/page/", "version=", "rev=", "diff=", "action=", "/action/", "/login/", "/embed/", "/tag/", "/tags/",
             "/author/", "/authors/", "/category/", "/categories/", "/archive/", "/archives/", "/feed/", "/feeds/",
             "/rss/", "/atom/", "?people=", "?person=", "?faculty=", "?staff=", "&people=", "&person=", "&faculty=",
-            "&staff="
+            "&staff=", "~"
             ]
         
         # Exclude URLs that contain certain patterns that are commonly associated with common redundant or low-information pages, such as "/page/", "version=", "rev=", "diff=", "action=", "/login/", or "/embed/" (case-insensitive)
