@@ -140,31 +140,37 @@ def is_valid(url):
         if "calender" in parsed.path.lower() or "calendar" in parsed.path.lower() or len(url) > 200:
             return False
         
-        # Exclude URLs that contain certain keywords that are commonly associated with calendar or scheduling pages, such as "ical=1", "outlook-ical", "tribe-bar-date", or "eventdisplay" (case-insensitive)
-        if any(pattern in url.lower() for pattern in ["ical=1", "outlook-ical", "tribe-bar-date", "eventdisplay"]):
-            return False
-        
         # Exclude URLs that are related to events and have specific sub-paths that are commonly associated with calendar or scheduling pages, such as "/category/", "/list/", "/day/" or "week-" (case-insensitive)
         if "/event/" in url.lower() or "/events/" in url.lower():
             if any(pattern in url.lower() for pattern in ["/category/", "/list/", "/day/", "week-"]):
                 return False
             if re.search(r'/\d{4}-\d{2}(-\d{2})?/', url.lower()): # Exclude URLs that contain date patterns in the path, which are commonly associated with event pages (e.g., "/2023-12-31/" or "/2023-12/")
                 return False
-            
-        # Exclude URLs that contain certain query parameters that are commonly associated with traps, such as "do=", "idx=", "tab_details=", "tab_files=", "share=", "replytocom=", "printable=", "export", or "pdf" (case-insensitive)
-        if any(trap_patterns in url.lower() for trap_patterns in ["do=", "idx=", "tab_details=", "tab_files=", "share=", "replytocom=", "printable=", "export", "pdf"]):
-            return False
+        
+        # Exclude URLs that contain certain patterns that are commonly associated with traps or low-information pages, such as "ical=1", "outlook-ical", "tribe-bar-date", "eventdisplay", "do=", "idx=", "tab_details=" (case-insensitive)
+        trap_patterns = [
+            "ical=1", "outlook-ical", "tribe-bar-date", "eventdisplay", "do=", "idx=", "tab_details=", "tab_files=", 
+            "share=", "replytocom=", "printable=", "export", "pdf", "sessionid=", "sid=", "phpsessid=", "gclid=", 
+            "utm_", "fbclid=", "ref=", "trackback=", "trackback/",  "wp-", "sort=", "filter=", "order=", "view=",
+            "random=", "seed="
+            ]
+        
+        useless_patterns = [
+            "/page/", "version=", "rev=", "diff=", "action=", "/action/", "/login/", "/embed/", "/tag/", "/tags/",
+            "/author/", "/authors/", "/category/", "/categories/", "/archive/", "/archives/", "?people=", "?person=",
+            "?faculty=", "?staff=", "&people=", "&person=", "&faculty=", "&staff="
+            ]
         
         # Exclude URLs that contain certain patterns that are commonly associated with common redundant or low-information pages, such as "/page/", "version=", "rev=", "diff=", "action=", "/login/", or "/embed/" (case-insensitive)
-        if any(useless_patterns in url.lower() for useless_patterns in ["/page/", "version=", "rev=", "diff=", "action=", "/login/", "/embed/"]):
+        if any(pattern in url.lower() for pattern in trap_patterns) or any(pattern in url.lower() for pattern in useless_patterns):
             return False
         
         # Exclude URLs that have repeated path segments, which can indicate a trap (e.g., "/a/b/a/b/")
         if re.search(r'(/.+?)\1{2,}', parsed.path):
             return False
         
-        # Exclude URLs that contain certain path segments that are commonly associated with traps, such as "/action/", "/login/", or "/embed/" (case-insensitive)
-        if any(path_segment in parsed.path.lower() for path_segment in ["/action/", "/login/", "/embed/"]):
+        # Exclude URLs that have pagination parameters with large numeric values, which can indicate a trap (e.g., "?page=9999" or "&offset=10000")
+        if re.search(r'[\?&](page|p|offset|start)=\d{3,}', url.lower()):
             return False
         
         # Exclude URLs that have an excessive number of path segments (e.g., more than 10), which can indicate a trap: Going too deep into the directory
