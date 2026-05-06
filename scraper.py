@@ -182,6 +182,14 @@ def is_valid(url):
         # Exclude URLs that have an excessive number of path segments (e.g., more than 10), which can indicate a trap: Going too deep into the directory
         if parsed.path.count('/') > 10:
             return False
+        
+        query_params = [p for p in parsed.query.split('&') if p] # Split the query string into individual parameters
+        # Exclude URLs that have an excessive number of query parameters (e.g., more than 4), which can indicate a trap
+        if len(query_params) > 4:
+            return False
+        # Exclude URLs that have duplicate query parameters, which can indicate a trap (e.g., "?id=1&id=1" or "?id=1&id=2")
+        if len(query_params) != len(set(query_params)):
+            return False
 
         return not re.match(
             r".*\.(css|js|apk|bmp|gif|jpe?g|ico"
