@@ -140,8 +140,8 @@ def is_valid(url):
         if not any(parsed.netloc.endswith(domain) for domain in allowed_domains):
             return False
         
-        # Exclude URLs that contain "calender" (case-insensitive) or "calendar" (case-insensitive) or are excessively long (greater than 350 characters)
-        if "calender" in parsed.path.lower() or "calendar" in parsed.path.lower() or len(url) > 350:
+        # Exclude URLs that contain "calender" (case-insensitive) or "calendar" (case-insensitive) in the path, since they are likely to be calendar pages that we want to avoid crawling
+        if "calender" in parsed.path.lower() or "calendar" in parsed.path.lower():
             return False
         
         # Exclude URLs that are related to events and have specific sub-paths that are commonly associated with calendar or scheduling pages, such as "/category/", "/list/", "/day/" or "week-" (case-insensitive)
