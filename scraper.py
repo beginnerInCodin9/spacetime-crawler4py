@@ -2,7 +2,10 @@ import re
 from urllib.parse import urlparse, urldefrag, urljoin
 from bs4 import BeautifulSoup
 import PartA
+from threading import Lock
 
+
+report_lock = Lock() # Lock for synchronizing access to the global variables used for the report, which are shared across threads.
 
 # Global variables to store answers for report
 unique_urls = set() # Q1: How many unique pages did you find? Uniqueness for the purposes of this assignment is ONLY established by the URL, but discarding the fragment part.
@@ -56,70 +59,71 @@ def extract_next_links(url, resp):
     
     if len(resp.raw_response.content) > 1000000:
         return list() # Return an empty list if the content is excessively large (greater than 1MB) to avoid processing very large pages that may be traps or not relevant
-        
-    # Remove the fragment from the URL and check if it has already been processed
-    clean_url, _ = urldefrag(resp.url)
-    if clean_url in unique_urls: # Check if the URL has already been processed
-        return list() # Return an empty list if the URL has already been processed
-    unique_urls.add(clean_url) # Add the clean URL to the set of unique URLs
-
-    # Parse the HTML content and extract visible text
-    soup = BeautifulSoup(resp.raw_response.content, "lxml") # Parse the HTML content using BeautifulSoup with the lxml parser
-    visible_text = soup.get_text() # Extract the text content from the HTML
-
-    # Define a helper function to tokenize the visible text using regular expressions following the same logic as PartA's tokenize function
-    def tokenize_text(text):
-        return re.findall(r'[a-zA-Z0-9]+', text.lower()) # Use regular expressions to find all alphanumeric tokens and convert them to lowercase for case-insensitivity
     
-    tokens = tokenize_text(visible_text) # Tokenize the visible text
+    with report_lock: # Synchronize access to the global variables used for the report to ensure thread safety
+        # Remove the fragment from the URL and check if it has already been processed
+        clean_url, _ = urldefrag(resp.url)
+        if clean_url in unique_urls: # Check if the URL has already been processed
+            return list() # Return an empty list if the URL has already been processed
+        unique_urls.add(clean_url) # Add the clean URL to the set of unique URLs
 
-    meaningful_tokens = [token for token in tokens if token not in STOP_WORDS] # Filter out stop words from the list of tokens
+        # Parse the HTML content and extract visible text
+        soup = BeautifulSoup(resp.raw_response.content, "lxml") # Parse the HTML content using BeautifulSoup with the lxml parser
+        visible_text = soup.get_text() # Extract the text content from the HTML
 
-    # Update longest page while ignoring stop words
-    current_word_count = len(meaningful_tokens) # Count the number of tokens on the page
-    if current_word_count > longest_page["word_count"]: # Check if the current page has more words than the longest page recorded so far
-        longest_page = {"url": clean_url, "word_count": current_word_count} # Update the longest page with the current page's URL and word count
+        # Define a helper function to tokenize the visible text using regular expressions following the same logic as PartA's tokenize function
+        def tokenize_text(text):
+            return re.findall(r'[a-zA-Z0-9]+', text.lower()) # Use regular expressions to find all alphanumeric tokens and convert them to lowercase for case-insensitivity
+        
+        tokens = tokenize_text(visible_text) # Tokenize the visible text
 
-    # Update word frequencies while ignoring stop words
-    if len(meaningful_tokens) >= 50: # Only consider pages with at least 50 meaningful tokens to avoid skewing the word frequencies with very short pages that may not be informative
-        page_freqs = PartA.computeWordFrequencies(meaningful_tokens) # Compute the frequency of each meaningful token on the page using the computeWordFrequencies function from PartA
-        for word, count in page_freqs.items(): # Update the global word frequencies dictionary with the counts from the current page, ignoring stop words
-            word_frequencies[word] = word_frequencies.get(word, 0) + count # Increment the count for each word in the global word frequencies dictionary, initializing to 0 if the word hasn't been seen before
+        meaningful_tokens = [token for token in tokens if token not in STOP_WORDS] # Filter out stop words from the list of tokens
 
-    parsed_url = urlparse(clean_url) # Parse the clean URL to extract components
-    if parsed_url.netloc.endswith("uci.edu"): # Check if the URL belongs to the uci.edu domain
-        subdomain = parsed_url.netloc # Extract the subdomain from the URL
-        subdomains[subdomain] = subdomains.get(subdomain, 0) + 1 # Add the subdomain to the subdomains dictionary and increment the count of unique pages for that subdomain, initializing to 0 if the subdomain hasn't been seen before
+        # Update longest page while ignoring stop words
+        current_word_count = len(meaningful_tokens) # Count the number of tokens on the page
+        if current_word_count > longest_page["word_count"]: # Check if the current page has more words than the longest page recorded so far
+            longest_page = {"url": clean_url, "word_count": current_word_count} # Update the longest page with the current page's URL and word count
 
-    # Extract hyperlinks from the page
-    extracted_links = set() # Use a set to store extracted links to avoid duplicates
-    for link in soup.find_all('a', href=True): # Find all anchor tags with an href attribute
-        href = link['href'] # Get the href value from the anchor tag
+        # Update word frequencies while ignoring stop words
+        if len(meaningful_tokens) >= 50: # Only consider pages with at least 50 meaningful tokens to avoid skewing the word frequencies with very short pages that may not be informative
+            page_freqs = PartA.computeWordFrequencies(meaningful_tokens) # Compute the frequency of each meaningful token on the page using the computeWordFrequencies function from PartA
+            for word, count in page_freqs.items(): # Update the global word frequencies dictionary with the counts from the current page, ignoring stop words
+                word_frequencies[word] = word_frequencies.get(word, 0) + count # Increment the count for each word in the global word frequencies dictionary, initializing to 0 if the word hasn't been seen before
 
-        # Skip links that are not valid for crawling, such as Javascript links, mailto links, or fragment-only links
-        if href.startswith("javascript:") or href.startswith("mailto:") or href.startswith("#"):
-            continue
+        parsed_url = urlparse(clean_url) # Parse the clean URL to extract components
+        if parsed_url.netloc.endswith("uci.edu"): # Check if the URL belongs to the uci.edu domain
+            subdomain = parsed_url.netloc # Extract the subdomain from the URL
+            subdomains[subdomain] = subdomains.get(subdomain, 0) + 1 # Add the subdomain to the subdomains dictionary and increment the count of unique pages for that subdomain, initializing to 0 if the subdomain hasn't been seen before
 
-        # Skip links that contain "YOUR_IP" (case-insensitive) or are IPv6 addresses (start with "[" or "http://[" or "https://[") to avoid crawling potentially invalid or trap URLs
-        if "YOUR_IP" in href.upper() or href.startswith("[") or href.startswith("http://[") or href.startswith("https://["):
-            continue
+        # Extract hyperlinks from the page
+        extracted_links = set() # Use a set to store extracted links to avoid duplicates
+        for link in soup.find_all('a', href=True): # Find all anchor tags with an href attribute
+            href = link['href'] # Get the href value from the anchor tag
 
-        try: 
-            full_url = urljoin(clean_url, link['href']) # Construct the full URL by joining the clean URL with the href value
-        except ValueError:
-            continue # Skip malformed URLs that cannot be joined properly
+            # Skip links that are not valid for crawling, such as Javascript links, mailto links, or fragment-only links
+            if href.startswith("javascript:") or href.startswith("mailto:") or href.startswith("#"):
+                continue
 
-        defragmented_url, _ = urldefrag(full_url) # Remove the fragment from the URL
-        # Check if the defragmented URL is valid and has not been processed before, then add it to the set of extracted links
-        if is_valid(defragmented_url) and defragmented_url not in unique_urls:
-            extracted_links.add(defragmented_url)
+            # Skip links that contain "YOUR_IP" (case-insensitive) or are IPv6 addresses (start with "[" or "http://[" or "https://[") to avoid crawling potentially invalid or trap URLs
+            if "YOUR_IP" in href.upper() or href.startswith("[") or href.startswith("http://[") or href.startswith("https://["):
+                continue
 
-    # Temporary debug prints; TO BE DELETED LATER
-    print(f"Total Unique: {len(unique_urls)}")
-    print(f"Current Longest: {longest_page['word_count']} words at {longest_page['url']}")
-    print(f"Subdomains found: {len(subdomains)}")
+            try: 
+                full_url = urljoin(clean_url, link['href']) # Construct the full URL by joining the clean URL with the href value
+            except ValueError:
+                continue # Skip malformed URLs that cannot be joined properly
 
-    return extracted_links
+            defragmented_url, _ = urldefrag(full_url) # Remove the fragment from the URL
+            # Check if the defragmented URL is valid and has not been processed before, then add it to the set of extracted links
+            if is_valid(defragmented_url) and defragmented_url not in unique_urls:
+                extracted_links.add(defragmented_url)
+
+        # Temporary debug prints; TO BE DELETED LATER
+        print(f"Total Unique: {len(unique_urls)}")
+        print(f"Current Longest: {longest_page['word_count']} words at {longest_page['url']}")
+        print(f"Subdomains found: {len(subdomains)}")
+
+        return extracted_links
 
 
 def is_valid(url):

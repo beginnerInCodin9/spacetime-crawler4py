@@ -1,10 +1,11 @@
-from threading import Thread
+from threading import RLock, Thread
 
 from inspect import getsource
 from utils.download import download
 from utils import get_logger
 import scraper
 import time
+from urllib.parse import urlparse
 
 
 class Worker(Thread):
@@ -12,6 +13,15 @@ class Worker(Thread):
     # It also adds any new urls discovered by the scraper to the frontier, and marks the url as
     # completed in the frontier. Each worker runs in its own thread, and continuously gets urls to
     # be downloaded from the frontier until there are no more urls to be downloaded.
+
+    # last_visit_times is a dictionary that maps domain names to the last time they were visited 
+    # by any worker. This is used to enforce the politeness policy, which requires that we wait 
+    # a certain amount of time between requests to the same domain. The domain_lock is a lock 
+    # that is used to synchronize access to the last_visit_times dictionary, since it is shared
+    # across all worker threads.
+    last_visit_times = {}
+    domain_lock = RLock() # Lock for synchronizing access to the last_visit_times dictionary, which is shared across threads.
+    
     def __init__(self, worker_id, config, frontier):
         self.logger = get_logger(f"Worker-{worker_id}", "Worker")
         self.config = config
@@ -28,6 +38,19 @@ class Worker(Thread):
             if not tbd_url:
                 self.logger.info("Frontier is empty. Stopping Crawler.")
                 break
+                
+            # Enforce politeness policy: Wait for the required time delay between requests 
+            # to the same domain.
+            domain = urlparse(tbd_url).netloc
+            with self.domain_lock:
+                last_visit = self.last_visit_times.get(domain, 0)
+                # Calculate how much time to sleep to enforce the time delay, and sleep 
+                # if necessary.
+                sleep_time = self.config.time_delay - (time.time() - last_visit)
+                if sleep_time > 0: # Sleep only if we need to wait more time to satisfy the time delay requirement
+                    time.sleep(sleep_time)
+                self.last_visit_times[domain] = time.time()
+
             # Download the url, and process the response with the scraper. Add any new urls discovered by the
             # scraper to the frontier, and mark the url as completed in the frontier.
             resp = download(tbd_url, self.config, self.logger)

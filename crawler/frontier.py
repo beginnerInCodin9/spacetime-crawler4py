@@ -14,6 +14,7 @@ class Frontier(object):
         self.logger = get_logger("FRONTIER")
         self.config = config
         self.to_be_downloaded = list()
+        self.lock = RLock() # Lock for synchronizing access to the frontier state, which is shared across threads.
         
         if not os.path.exists(self.config.save_file) and not restart:
             # Save file does not exist, but request to load save.
@@ -52,22 +53,26 @@ class Frontier(object):
             f"total urls discovered.")
 
     def get_tbd_url(self):
-        # Get a url to be downloaded. Returns None if there are no urls to be downloaded.
-        try:
-            return self.to_be_downloaded.pop()
-        except IndexError:
-            return None
+        # Get a url from the frontier to be downloaded. This should only be 
+        # called by the downloader threads, and should return None if there 
+        # are no urls to be downloaded.
+        with self.lock:
+            try:
+                return self.to_be_downloaded.pop()
+            except IndexError:
+                return None
 
     def add_url(self, url):
-        # Add a url to the frontier, if it has not already been seen.
-        # The url is normalized before being added, so that different
-        # forms of the same url are not treated as different urls.
+        # Add a url to the frontier to be downloaded, if it has not already been
+        # discovered. This should only be called by the scraper threads, after 
+        # they have extracted urls from a downloaded page.
         url = normalize(url)
         urlhash = get_urlhash(url)
-        if urlhash not in self.save:
-            self.save[urlhash] = (url, False)
-            self.save.sync()
-            self.to_be_downloaded.append(url)
+        with self.lock:
+            if urlhash not in self.save:
+                self.save[urlhash] = (url, False)
+                self.save.sync()
+                self.to_be_downloaded.append(url)
     
     def mark_url_complete(self, url):
         # Mark a url as completed, so that it will not be downloaded again.
