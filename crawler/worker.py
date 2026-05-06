@@ -46,10 +46,10 @@ class Worker(Thread):
                 last_visit = self.last_visit_times.get(domain, 0)
                 # Calculate how much time to sleep to enforce the time delay, and sleep 
                 # if necessary.
-                sleep_time = self.config.time_delay - (time.time() - last_visit)
+                sleep_time = (self.config.time_delay + 0.1) - (time.time() - last_visit)
                 if sleep_time > 0: # Sleep only if we need to wait more time to satisfy the time delay requirement
                     time.sleep(sleep_time)
-                self.last_visit_times[domain] = time.time()
+                self.last_visit_times[domain] = time.time() # Update the last visit time for the domain to the current time, since we are about to make a request to it.
 
             # Download the url, and process the response with the scraper. Add any new urls discovered by the
             # scraper to the frontier, and mark the url as completed in the frontier.
@@ -61,4 +61,3 @@ class Worker(Thread):
             for scraped_url in scraped_urls:
                 self.frontier.add_url(scraped_url)
             self.frontier.mark_url_complete(tbd_url)
-            time.sleep(self.config.time_delay)
