@@ -136,8 +136,8 @@ def is_valid(url):
         if not any(parsed.netloc.endswith(domain) for domain in allowed_domains):
             return False
         
-        # Exclude URLs that contain "calender" (case-insensitive) or "calendar" (case-insensitive) or are excessively long (greater than 200 characters)
-        if "calender" in parsed.path.lower() or "calendar" in parsed.path.lower() or len(url) > 200:
+        # Exclude URLs that contain "calender" (case-insensitive) or "calendar" (case-insensitive) or are excessively long (greater than 350 characters)
+        if "calender" in parsed.path.lower() or "calendar" in parsed.path.lower() or len(url) > 350:
             return False
         
         # Exclude URLs that are related to events and have specific sub-paths that are commonly associated with calendar or scheduling pages, such as "/category/", "/list/", "/day/" or "week-" (case-insensitive)
@@ -153,13 +153,22 @@ def is_valid(url):
         
         # Exclude URLs that contain certain patterns that are commonly associated with traps or low-information pages, such as "ical=1", "outlook-ical", "tribe-bar-date", "eventdisplay", "do=", "idx=", "tab_details=" (case-insensitive)
         trap_patterns = [
-            "ical=1", "outlook-ical", "tribe-bar-date", "eventdisplay", "do=", "idx=", "tab_details=", "tab_files=", 
-            "share=", "replytocom=", "printable=", "export", "pdf", "sessionid=", "sid=", "phpsessid=", "gclid=", 
-            "utm_", "fbclid=", "ref=", "trackback=", "trackback/",  "wp-", "sort=", "filter=", "order=", "view=",
-            "random=", "seed=", "?q=", "&q=", "?search=", "&search=", "?s=", "&s="
+            # calendar- or event-related patterns
+            "ical=1", "outlook-ical", "tribe-bar-date", "eventdisplay",
+            # common trap patterns
+            "do=", "idx=", "tab_details=", "tab_files=", "share=", "replytocom=", "printable=", "export", "pdf",
+            # session or tracking parameters
+            "sessionid=", "sid=", "phpsessid=", "gclid=", "utm_", "fbclid=", "ref=", 
+            # common trap patterns related to pagination, sorting, filtering, or tracking
+            "trackback=", "trackback/",  "wp-", "sort=", "filter=", "order=", "view=", "random=", "seed=",
+            # common trap patterns related to search queries
+            "?q=", "&q=", "?search=", "&search=", "?s=", "&s="
             ]
         
         useless_patterns = [
+            # common patterns that are often associated with low-information pages, such as pagination, versioning, 
+            # login, embedding, tagging, author pages, category pages, archive pages, feed pages, language or 
+            # formatting parameters (case-insensitive)
             "/page/", "version=", "rev=", "diff=", "action=", "/action/", "/login/", "/embed/", "/tag/", "/tags/",
             "/author/", "/authors/", "/category/", "/categories/", "/archive/", "/archives/", "/feed/", "/feeds/",
             "/rss/", "/atom/", "?people=", "?person=", "?faculty=", "?staff=", "&people=", "&person=", "&faculty=",
@@ -187,13 +196,13 @@ def is_valid(url):
         if re.search(r'[\?&](page|p|offset|start)=\d{3,}', url.lower()):
             return False
         
-        # Exclude URLs that have an excessive number of path segments (e.g., more than 10), which can indicate a trap: Going too deep into the directory
-        if parsed.path.count('/') > 10:
+        # Exclude URLs that have an excessive number of path segments (e.g., more than 15), which can indicate a trap: Going too deep into the directory
+        if parsed.path.count('/') > 15:
             return False
         
         query_params = [p for p in parsed.query.split('&') if p] # Split the query string into individual parameters
-        # Exclude URLs that have an excessive number of query parameters (e.g., more than 4), which can indicate a trap
-        if len(query_params) > 4:
+        # Exclude URLs that have an excessive number of query parameters (e.g., more than 5), which can indicate a trap
+        if len(query_params) > 5:
             return False
         # Exclude URLs that have duplicate query parameters, which can indicate a trap (e.g., "?id=1&id=1" or "?id=1&id=2")
         if len(query_params) != len(set(query_params)):
