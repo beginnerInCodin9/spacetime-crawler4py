@@ -144,7 +144,11 @@ def is_valid(url):
         if "/event/" in url.lower() or "/events/" in url.lower():
             if any(pattern in url.lower() for pattern in ["/category/", "/list/", "/day/", "week-"]):
                 return False
-            if re.search(r'/\d{4}-\d{2}(-\d{2})?/', url.lower()): # Exclude URLs that contain date patterns in the path, which are commonly associated with event pages (e.g., "/2023-12-31/" or "/2023-12/")
+            # Exclude URLs that contain date patterns in the path, which are commonly associated with event pages (e.g., "/2023-12-31/" or "/2023-12/")
+            if re.search(r'/\d{4}-\d{2}(-\d{2})?/', url.lower()):
+                return False
+            # Exclude URLs that contain date patterns in the path with slashes, which are also commonly associated with event pages (e.g., "/2023/12/31/" or "/2023/12/")
+            if re.search(r'/\d{4}/\d{2}/\d{2}/', url.lower()):
                 return False
         
         # Exclude URLs that contain certain patterns that are commonly associated with traps or low-information pages, such as "ical=1", "outlook-ical", "tribe-bar-date", "eventdisplay", "do=", "idx=", "tab_details=" (case-insensitive)
