@@ -91,11 +91,6 @@ def extract_next_links(url, resp):
         subdomain = parsed_url.netloc # Extract the subdomain from the URL
         subdomains[subdomain] = subdomains.get(subdomain, 0) + 1 # Add the subdomain to the subdomains dictionary and increment the count of unique pages for that subdomain, initializing to 0 if the subdomain hasn't been seen before
 
-    # Temporary debug prints; TO BE DELETED LATER
-    print(f"Total Unique: {len(unique_urls)}")
-    print(f"Current Longest: {longest_page['word_count']} words at {longest_page['url']}")
-    print(f"Subdomains found: {len(subdomains)}")
-
     # Extract hyperlinks from the page
     extracted_links = set() # Use a set to store extracted links to avoid duplicates
     for link in soup.find_all('a', href=True): # Find all anchor tags with an href attribute
@@ -118,6 +113,11 @@ def extract_next_links(url, resp):
         # Check if the defragmented URL is valid and has not been processed before, then add it to the set of extracted links
         if is_valid(defragmented_url) and defragmented_url not in unique_urls:
             extracted_links.add(defragmented_url)
+
+    # Temporary debug prints; TO BE DELETED LATER
+    print(f"Total Unique: {len(unique_urls)}")
+    print(f"Current Longest: {longest_page['word_count']} words at {longest_page['url']}")
+    print(f"Subdomains found: {len(subdomains)}")
 
     return extracted_links
 
