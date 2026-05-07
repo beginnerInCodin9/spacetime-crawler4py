@@ -73,7 +73,7 @@ def extract_next_links(url, resp):
 
         # Define a helper function to tokenize the visible text using regular expressions following the same logic as PartA's tokenize function
         def tokenize_text(text):
-            return re.findall(r'[a-zA-Z0-9]+', text.lower()) # Use regular expressions to find all alphanumeric tokens and convert them to lowercase for case-insensitivity
+            return re.findall(r'[a-z]{2,}', text.lower()) # Use regular expressions to find all alphanumeric tokens and convert them to lowercase for case-insensitivity
         
         tokens = tokenize_text(visible_text) # Tokenize the visible text
 
