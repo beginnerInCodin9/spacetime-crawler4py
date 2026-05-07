@@ -118,11 +118,6 @@ def extract_next_links(url, resp):
             if is_valid(defragmented_url) and defragmented_url not in unique_urls:
                 extracted_links.add(defragmented_url)
 
-        # Temporary debug prints; TO BE DELETED LATER
-        print(f"Total Unique: {len(unique_urls)}")
-        print(f"Current Longest: {longest_page['word_count']} words at {longest_page['url']}")
-        print(f"Subdomains found: {len(subdomains)}")
-
         return extracted_links
 
 
