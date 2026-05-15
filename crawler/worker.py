@@ -44,7 +44,8 @@ class Worker(Thread):
             domain = urlparse(tbd_url).netloc
 
             if domain.endswith(".uci.edu"):
-                politeness_key = "uci_domain" # Treat all subdomains of uci.edu as the same domain for the purpose of enforcing the politeness policy, since they are all part of the same organization and likely share the same server infrastructure.
+                politeness_key = "uci_domain" # Treat all subdomains of uci.edu as the same domain for the purpose of enforcing the politeness policy, 
+                                              # since they are all part of the same organization and likely share the same server infrastructure.
             else:
                 politeness_key = domain # For other domains, use the full domain name as the key for enforcing the politeness policy.
             

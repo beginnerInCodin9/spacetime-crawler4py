@@ -61,15 +61,14 @@ def extract_next_links(url, resp):
         return list() # Return an empty list if the content is excessively large (greater than 1MB) to avoid processing very large pages that may be traps or not relevant
     
     with report_lock: # Synchronize access to the global variables used for the report to ensure thread safety
-        # Remove the fragment from the URL and check if it has already been processed
+        # Remove the fragment from the URL
         clean_url, _ = urldefrag(resp.url)
         if clean_url in unique_urls: # Check if the URL has already been processed
             return list() # Return an empty list if the URL has already been processed
         unique_urls.add(clean_url) # Add the clean URL to the set of unique URLs
 
-        # Parse the HTML content and extract visible text
         soup = BeautifulSoup(resp.raw_response.content, "lxml") # Parse the HTML content using BeautifulSoup with the lxml parser
-        visible_text = soup.get_text() # Extract the text content from the HTML
+        visible_text = soup.get_text() # Extract the visible text content from the HTML
 
         # Define a helper function to tokenize the visible text using regular expressions following the same logic as PartA's tokenize function
         def tokenize_text(text):
@@ -112,14 +111,16 @@ def extract_next_links(url, resp):
                 full_url = urljoin(clean_url, link['href']) # Construct the full URL by joining the clean URL with the href value
             except ValueError:
                 continue # Skip malformed URLs that cannot be joined properly
-
+            
+            # Defragment the URL found in the page (inside <href> tags) to remove the fragment part, 
+            # which is not relevant for crawling and should not be considered when 
+            # determining uniqueness of URLs
             defragmented_url, _ = urldefrag(full_url) # Remove the fragment from the URL
             # Check if the defragmented URL is valid and has not been processed before, then add it to the set of extracted links
             if is_valid(defragmented_url) and defragmented_url not in unique_urls:
                 extracted_links.add(defragmented_url)
 
         return extracted_links
-
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 
@@ -139,18 +140,21 @@ def is_valid(url):
         if "calender" in parsed.path.lower() or "calendar" in parsed.path.lower():
             return False
         
-        # Exclude URLs that are related to events and have specific sub-paths that are commonly associated with calendar or scheduling pages, such as "/category/", "/list/", "/day/" or "week-" (case-insensitive)
+        # Exclude URLs that are related to events and have specific sub-paths that are commonly 
+        # associated with calendar or scheduling pages, such as "/category/", "/list/", "/day/" 
+        # or "week-" (case-insensitive)
         if "/event/" in url.lower() or "/events/" in url.lower():
             if any(pattern in url.lower() for pattern in ["/category/", "/list/", "/day/", "week-"]):
                 return False
-            # Exclude URLs that contain date patterns in the path, which are commonly associated with event pages (e.g., "/2023-12-31/" or "/2023-12/")
+            # Exclude URLs that contain date patterns in the path, which are commonly associated 
+            # with event pages (e.g., "/2023-12-31/" or "/2023-12/")
             if re.search(r'/\d{4}-\d{2}(-\d{2})?/', url.lower()):
                 return False
-            # Exclude URLs that contain date patterns in the path with slashes, which are also commonly associated with event pages (e.g., "/2023/12/31/" or "/2023/12/")
+            # Exclude URLs that contain date patterns in the path with slashes, which are also 
+            # commonly associated with event pages (e.g., "/2023/12/31/" or "/2023/12/")
             if re.search(r'/\d{4}/\d{2}/\d{2}/', url.lower()):
                 return False
         
-        # Exclude URLs that contain certain patterns that are commonly associated with traps or low-information pages, such as "ical=1", "outlook-ical", "tribe-bar-date", "eventdisplay", "do=", "idx=", "tab_details=" (case-insensitive)
         trap_patterns = [
             # calendar- or event-related patterns
             "ical=1", "outlook-ical", "tribe-bar-date", "eventdisplay",
@@ -177,28 +181,64 @@ def is_valid(url):
             "orderby="
             ]
         
-        # Exclude URLs that contain certain patterns that are commonly associated with common redundant or low-information pages, such as "/page/", "version=", "rev=", "diff=", "action=", "/login/", or "/embed/" (case-insensitive)
+        # Exclude URLs that contain any of the trap patterns or useless patterns defined above, 
+        # which are commonly associated with traps or low-information pages that we want to avoid 
+        # crawling
         if any(pattern in url.lower() for pattern in trap_patterns) or any(pattern in url.lower() for pattern in useless_patterns):
             return False
         
-        # Exclude URLs that have repeated path segments, which can indicate a trap (e.g., "/a/b/a/b/")
+        # Exclude URLs that have repeated path segments, which can indicate a trap 
+        # (e.g., "/a/a/a/a/")
+        # Explanation: This regular expression looks for a pattern where a path segment 
+        # (defined as one or more characters between slashes) is repeated at least 3 times 
+        # in the URL path. The pattern "(/.+?)" captures a path segment, and "\1{2,}" 
+        # checks if that captured segment is repeated at least 2 more times (for a total 
+        # of at least 3 occurrences). This helps to identify URLs that have excessive 
+        # repetition of the same path segment, which is often a characteristic of traps 
+        # that can lead to infinite crawling loops.
         if re.search(r'(/.+?)\1{2,}', parsed.path):
             return False
         
-        # Exclude URLs that have the same path segment repeated at least 4 times, which can indicate a trap (e.g., "/a/a/a/a/")
+        # Exclude URLs that have the same path segment repeated at least 4 times, 
+        # which can indicate a trap (e.g., "/a/b/a/b/")
+        # Explanation: This regular expression looks for a pattern where a path segment 
+        # (defined as one or more characters between slashes) is repeated at least 4 
+        # times in the URL path. The pattern "(/.+?)" captures a path segment, and 
+        # "\1{2,}" checks if that captured segment is repeated at least 2 more times 
+        # (for a total of at least 3 occurrences). This helps to identify URLs that 
+        # have excessive repetition of the same path segment, which is often a 
+        # characteristic of traps that can lead to infinite crawling loops.
         path_segments = [p for p in parsed.path.split('/') if p]
         if len(path_segments) >= 4:
             if path_segments[:2] == path_segments[2:4]:
                 return False
         
-        # Exclude URLs that have pagination parameters with large numeric values, which can indicate a trap (e.g., "?page=9999" or "&offset=10000")
+        # Exclude URLs that have pagination parameters with large numeric values, 
+        # which can indicate a trap (e.g., "?page=9999" or "&offset=10000")
+        # Explanation: This regular expression looks for common pagination parameters such as "page", 
+        # "p", "offset", or "start" followed by an equals sign and a numeric value with 3 or more digits. 
+        # This is often a characteristic of traps that generate a large number of pages with different 
+        # pagination parameters, which can lead to infinite crawling loops if the crawler keeps following 
+        # these links without a proper stopping condition.
         if re.search(r'[\?&](page|p|offset|start)=\d{3,}', url.lower()):
             return False
         
-        # Exclude URLs that have an excessive number of path segments (e.g., more than 15), which can indicate a trap: Going too deep into the directory
+        # Exclude URLs that have an excessive number of path segments (e.g., more than 15), 
+        # which can indicate a trap (going too deep into the directory)
+        # Explanation: This condition check is necessary to avoid crawling URLs that have an excessively 
+        # large number of path segments, which can be a sign of a trap where the server generates a large 
+        # number of pages with deep directory structures. By limiting the number of path segments to a 
+        # reasonable threshold (e.g., 15), we can help prevent the crawler from getting stuck in such 
+        # traps and consuming excessive resources.
         if parsed.path.count('/') > 15:
             return False
         
+        # Explanation: The following condition checks is necessary to avoid crawling URLs that have an 
+        # excessive number of query parameters or duplicate query parameters, which can be a sign of a 
+        # trap where the server generates a large number of pages with different query parameter 
+        # combinations. By limiting the number of query parameters to a reasonable threshold (e.g., 5) 
+        # and excluding URLs with duplicate query parameters, we can help prevent the crawler from 
+        # getting stuck in such traps and consuming excessive resources.
         query_params = [p for p in parsed.query.split('&') if p] # Split the query string into individual parameters
         # Exclude URLs that have an excessive number of query parameters (e.g., more than 5), which can indicate a trap
         if len(query_params) > 5:
